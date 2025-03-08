@@ -1,0 +1,13 @@
+type: object
+required:
+  - status
+  - message
+properties:
+  status:
+    type: integer
+    description: HTTP status error code (e.g., 400 for client errors, 500 for server errors)
+    example: 400
+  message:
+    type: string
+    description: Error name or explanation
+    example: 'BadRequestError'
