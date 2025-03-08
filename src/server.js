@@ -2,8 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 
-import contactRouter from './routers/contacts.js';
+// import contactRouter from './routers/contacts.js';
 import authRouter from './routers/auth.js';
+import cartRouter from './routers/cart.js';
 import { swaggerDocs } from './middlewares/swaggerDocs.js';
 
 import { getEnvVar } from './utils/getEnvVar.js';
@@ -23,7 +24,8 @@ export const setupServer = () => {
   app.use(logger);
 
   app.use('/auth', authRouter);
-  app.use('/contacts', contactRouter);
+  app.use('/cart', cartRouter);
+  // app.use('/contacts', contactRouter);
   app.use('/uploads', express.static(UPLOAD_DIR));
   app.use('/api-docs', swaggerDocs());
 
