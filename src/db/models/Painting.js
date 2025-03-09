@@ -5,8 +5,8 @@ const paintingSchema = new Schema(
     title: { type: String, required: true },
     description: { type: String, required: true },
     price: { type: Number, required: true, min: 1 },
-    image: { type: String, required: true }, // URL на зображення картини
-    available: { type: Boolean, default: true }, // В наявності чи продана
+    image: { type: String, required: true },
+    available: { type: Boolean, default: true },
   },
   { timestamps: true, versionKey: false },
 );
