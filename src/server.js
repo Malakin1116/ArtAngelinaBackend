@@ -7,6 +7,7 @@ import authRouter from './routers/auth.js';
 import cartRouter from './routers/cart.js';
 import { swaggerDocs } from './middlewares/swaggerDocs.js';
 import galleryRouter from './routers/galleryRouter.js';
+import paymentRouter from './routers/payment.js';
 
 import { getEnvVar } from './utils/getEnvVar.js';
 import { logger } from './middlewares/logger.js';
@@ -27,6 +28,7 @@ export const setupServer = () => {
   app.use('/auth', authRouter);
   app.use('/cart', cartRouter);
   app.use('/gallery', galleryRouter);
+  app.use('/payment', paymentRouter);
   // app.use('/contacts', contactRouter);
   app.use('/uploads', express.static(UPLOAD_DIR));
   app.use('/api-docs', swaggerDocs());

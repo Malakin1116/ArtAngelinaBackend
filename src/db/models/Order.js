@@ -15,9 +15,18 @@ const orderSchema = new Schema(
     totalPrice: { type: Number, required: true, min: 0 },
     status: {
       type: String,
-      enum: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'],
+      enum: [
+        'pending',
+        'confirmed',
+        'shipped',
+        'delivered',
+        'cancelled',
+        'paid',
+      ],
       default: 'pending',
     },
+    paymentId: { type: Schema.Types.ObjectId, ref: 'Payment', default: null },
+    paymentDescription: { type: String, required: true }, // ✅ Додане поле
   },
   { timestamps: true, versionKey: false },
 );
