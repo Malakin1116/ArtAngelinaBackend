@@ -1,27 +1,15 @@
 import mongoose from 'mongoose';
 
 const paymentSchema = new mongoose.Schema({
-  orderId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'order', // ✅ Виправлене ref
-    required: true,
-  },
-  amount: { type: Number, required: true },
-  description: { type: String, required: true },
-  items: [
-    {
-      name: { type: String, required: true },
-      quantity: { type: Number, required: true, default: 1 },
-      price: { type: Number, required: true },
-    },
-  ],
-  paymentTime: { type: Date, required: true },
+  amount: { type: Number, required: true }, // Сума платежу
+  description: { type: String, required: true }, // Опис платежу
+  paymentTime: { type: Date, required: true }, // Час оплати
   status: {
     type: String,
     enum: ['pending', 'completed', 'failed'],
     default: 'completed',
   },
-  transactionId: { type: String, required: true },
+  transactionId: { type: String, required: true, unique: true }, // ID транзакції
   createdAt: { type: Date, default: Date.now },
 });
 
