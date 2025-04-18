@@ -89,27 +89,43 @@ export const resetPasswordController = async (req, res) => {
 
 export const getGoogleOAthUrlController = async (req, res) => {
   const url = generateOAuthUrl();
-
   res.json({
     status: 200,
     message: 'Successfully get Google OAth url',
-    data: {
-      url,
-    },
+    data: { url },
   });
 };
 
 export const loginWithGoogleController = async (req, res) => {
   const { code } = req.body;
   const session = await loginOrRegisterWithGoogle(code);
-
   setupSession(res, session);
-
   res.json({
     status: 200,
     message: 'Successfully loginWithGoogleOAuth!',
     data: {
       accessToken: session.accessToken,
     },
+  });
+};
+
+export const getCurrentUserController = async (req, res) => {
+  const user = req.user; // Отримуємо користувача з authenticate middleware
+  res.json({
+    status: 200,
+    message: 'User retrieved successfully',
+    data: user,
+  });
+};
+
+// Новий контролер для створення адміністратора
+export const registerAdminController = async (req, res) => {
+  const user = await registerUser({ ...req.body, role: 'admin' });
+  const userObject = user.toObject();
+  delete userObject.password;
+  res.status(201).json({
+    status: 201,
+    message: 'Successfully registered an admin!',
+    data: userObject,
   });
 };

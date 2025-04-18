@@ -1,7 +1,6 @@
 import { Router } from 'express';
-
 import { ctrlWrapper } from '../utils/ctrlWrapper.js';
-import { registerUserSchema } from '../validation/auth.js';
+import { registerUserSchema, loginUserSchema, requestResetEmailSchema, resetPasswordSchema, googleOAuthSchema } from '../validation/auth.js';
 import {
   registerUserController,
   loginUserController,
@@ -9,31 +8,20 @@ import {
   refreshUserSessionController,
   getGoogleOAthUrlController,
   loginWithGoogleController,
+  requestResetEmailController,
+  resetPasswordController,
+  registerAdminController, // Додаємо контролер
+  getCurrentUserController, // Додаємо контролер
 } from '../controllers/auth.js';
-
 import { validateBody } from '../middlewares/validateBody.js';
-import { loginUserSchema } from '../validation/auth.js';
-
-import { requestResetEmailSchema } from '../validation/auth.js';
-import { requestResetEmailController } from '../controllers/auth.js';
-
-import { resetPasswordSchema } from '../validation/auth.js';
-import { resetPasswordController } from '../controllers/auth.js';
-import { googleOAuthSchema } from '../validation/auth.js';
+import { authenticate } from '../middlewares/authenticate.js';
+import { restrictToAdmin } from '../middlewares/restrictToAdmin.js';
 
 const authRouter = Router();
 
-authRouter.post(
-  '/register',
-  validateBody(registerUserSchema),
-  ctrlWrapper(registerUserController),
-);
+authRouter.post('/register', validateBody(registerUserSchema), ctrlWrapper(registerUserController));
 
-authRouter.post(
-  '/login',
-  validateBody(loginUserSchema),
-  ctrlWrapper(loginUserController),
-);
+authRouter.post('/login', validateBody(loginUserSchema), ctrlWrapper(loginUserController));
 
 authRouter.post('/logout', ctrlWrapper(logoutUserController));
 
@@ -56,6 +44,19 @@ authRouter.post(
   validateBody(googleOAuthSchema),
   ctrlWrapper(loginWithGoogleController),
 );
+
 authRouter.get('/get-oauth-url', ctrlWrapper(getGoogleOAthUrlController));
+
+// Новий маршрут для створення адміністратора
+authRouter.post(
+  '/register-admin',
+  authenticate,
+  restrictToAdmin,
+  validateBody(registerUserSchema),
+  ctrlWrapper(registerAdminController),
+);
+
+// Новий маршрут для отримання поточного користувача
+authRouter.get('/current', authenticate, ctrlWrapper(getCurrentUserController));
 
 export default authRouter;
