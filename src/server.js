@@ -4,18 +4,20 @@ import cookieParser from 'cookie-parser';
 import authRouter from './routers/auth.js';
 import cartRouter from './routers/cart.js';
 import galleryRouter from './routers/galleryRouter.js';
+import adminRouter from './routers/adminRouter.js';
+import paymentRouter from './routers/payment.js';
 import { swaggerDocs } from './middlewares/swaggerDocs.js';
 import { getEnvVar } from './utils/getEnvVar.js';
 import { logger } from './middlewares/logger.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { notFounderHandler } from './middlewares/notFoundHandler.js';
 import { UPLOAD_DIR } from './constants/index.js';
-import { initMongoConnection } from './db/initMongoConnection.js'; // Змінили connect.js на initMongoConnection.js
+import { initMongoConnection } from './db/initMongoConnection.js';
 
 export const setupServer = async () => {
   const app = express();
 
-  await initMongoConnection(); // Змінили connectDB на initMongoConnection
+  await initMongoConnection();
 
   app.use(cors());
   app.use(express.json());
@@ -25,6 +27,8 @@ export const setupServer = async () => {
   app.use('/auth', authRouter);
   app.use('/cart', cartRouter);
   app.use('/gallery', galleryRouter);
+  app.use('/admin/paintings', adminRouter);
+  app.use('/payment', paymentRouter);
   app.use('/uploads', express.static(UPLOAD_DIR));
   app.use('/api-docs', swaggerDocs());
 
