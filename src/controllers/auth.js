@@ -19,6 +19,7 @@ const setupSession = (res, session) => {
     httpOnly: true,
     expires: new Date(Date.now() + THIRTY_DAYS),
   });
+  console.log('Cookies set for session:', session._id);
 };
 
 export const registerUserController = async (req, res) => {
