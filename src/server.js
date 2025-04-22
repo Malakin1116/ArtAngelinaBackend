@@ -19,19 +19,19 @@ export const setupServer = async () => {
 
   await initMongoConnection();
 
-  // Налаштування CORS
+  // Послаблене налаштування CORS для тестування
   app.use(
     cors({
-      origin: ['http://localhost:5173', 'https://localhost:5173'], // Дозволяємо і HTTP, і HTTPS
+      origin: '*', // Дозволяємо всі походження
       credentials: true,
       methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],
     })
   );
 
-  // Обробка preflight запитів (OPTIONS)
+  // Спрощена обробка preflight запитів (OPTIONS)
   app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', req.headers.origin); // Динамічно дозволяємо origin
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
