@@ -34,8 +34,10 @@ export const registerUserController = async (req, res) => {
 };
 
 export const loginUserController = async (req, res) => {
+  console.log('Login attempt with body:', req.body, 'Timestamp:', new Date().toISOString());
   const session = await loginUser(req.body);
   setupSession(res, session);
+  console.log('Session created:', session._id, 'Cookies set:', res.getHeaders()['set-cookie']);
   res.json({
     status: 200,
     message: 'Successfully logged in an user!',
