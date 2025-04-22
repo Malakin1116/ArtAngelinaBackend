@@ -14,18 +14,11 @@ const setupSession = (res, session) => {
   res.cookie('refreshToken', session.refreshToken, {
     httpOnly: true,
     expires: new Date(Date.now() + THIRTY_DAYS),
-    sameSite: 'None', // Для крос-доменних запитів
-    secure: true, // Для HTTPS
-    path: '/', // Доступність для всіх маршрутів
   });
   res.cookie('sessionId', session._id, {
     httpOnly: true,
     expires: new Date(Date.now() + THIRTY_DAYS),
-    sameSite: 'None',
-    secure: true,
-    path: '/',
   });
-  console.log('Cookies set for session:', session._id);
 };
 
 export const registerUserController = async (req, res) => {
