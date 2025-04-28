@@ -5,6 +5,7 @@ import authRouter from './routers/auth.js';
 import cartRouter from './routers/cart.js';
 import galleryRouter from './routers/galleryRouter.js';
 import adminRouter from './routers/adminRouter.js';
+import merchRouter from './routers/merchRouter.js'; // Додаємо роут для мерчу
 import paymentRouter from './routers/payment.js';
 import { swaggerDocs } from './middlewares/swaggerDocs.js';
 import { getEnvVar } from './utils/getEnvVar.js';
@@ -42,6 +43,7 @@ export const setupServer = async () => {
   app.use('/cart', cartRouter);
   app.use('/gallery', galleryRouter);
   app.use('/admin/paintings', adminRouter);
+  app.use('/merch', merchRouter); // Додаємо роут для мерчу
   app.use('/payment', paymentRouter);
   app.use('/uploads', express.static(UPLOAD_DIR));
   app.use('/api-docs', swaggerDocs());

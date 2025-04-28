@@ -12,3 +12,16 @@ export const updatePaintingSchema = Joi.object({
   price: Joi.number().min(1),
   available: Joi.boolean(),
 }).min(1);
+
+export const merchSchema = Joi.object({
+  title: Joi.string().required(),
+  description: Joi.string().required(),
+  price: Joi.number().min(1).required(),
+});
+
+export const updateMerchSchema = Joi.object({
+  title: Joi.string().optional(),
+  description: Joi.string().optional(),
+  price: Joi.number().min(1).optional(),
+  available: Joi.boolean().optional(),
+}).min(1);
