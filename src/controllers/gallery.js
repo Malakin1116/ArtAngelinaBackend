@@ -1,7 +1,6 @@
 import { PaintingCollection } from '../db/models/Painting.js';
 import { saveFileToCloudinary } from '../utils/saveFileToCloudinary.js';
 
-// Your existing addPainting function remains unchanged
 export const addPainting = async (req, res) => {
   try {
     const { title, description, price } = req.body;
@@ -41,5 +40,18 @@ export const getAllPaintings = async (req, res) => {
       message: 'Server error',
       error: error.message,
     });
+  }
+};
+
+export const getPaintingById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const painting = await PaintingCollection.findById(id);
+    if (!painting) {
+      return res.status(404).json({ message: 'Painting not found' });
+    }
+    res.status(200).json(painting);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };

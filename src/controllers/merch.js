@@ -23,10 +23,7 @@ export const getMerchById = async (req, res) => {
     if (!merch) {
       throw createHttpError(404, 'Merch item not found');
     }
-    res.status(200).json({
-      message: 'Merch item retrieved successfully',
-      merch,
-    });
+    res.status(200).json(merch); // Повертаємо об’єкт напряму
   } catch (error) {
     if (error.status === 404) {
       res.status(404).json({ message: error.message });
