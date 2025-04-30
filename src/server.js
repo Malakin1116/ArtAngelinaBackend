@@ -31,7 +31,7 @@ export const setupServer = async () => {
       origin: [
         'http://localhost:5173',
         'https://localhost:5173',
-        'https://art-angelina-p60wu6ennm-bogdans-projects-42ab3fb6.vercel.app', // Домен Vercel
+        'https://artangelina.com',
       ],
       credentials: true,
       methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
