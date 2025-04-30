@@ -28,7 +28,11 @@ export const setupServer = async () => {
 
   app.use(
     cors({
-      origin: ['http://localhost:5173', 'https://localhost:5173'],
+      origin: [
+        'http://localhost:5173',
+        'https://localhost:5173',
+        'https://art-angelina-p60wu6ennm-bogdans-projects-42ab3fb6.vercel.app', // Домен Vercel
+      ],
       credentials: true,
       methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],
