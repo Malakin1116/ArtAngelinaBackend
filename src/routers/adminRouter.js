@@ -7,13 +7,16 @@ import { paintingSchema, updatePaintingSchema, merchSchema, updateMerchSchema } 
 import { ctrlWrapper } from '../utils/ctrlWrapper.js';
 import {
   addPainting,
+  getAllPaintings,
   updatePainting,
   deletePainting,
-  getAllPaintings,
   addMerch,
   getAllMerch,
   updateMerch,
   deleteMerch,
+  getAllOrders,
+  updateOrder,
+  deleteOrder,
 } from '../controllers/admin.js';
 
 const router = express.Router();
@@ -32,5 +35,10 @@ router.post('/merch', upload.single('image'), validateBody(merchSchema), ctrlWra
 router.get('/merch', ctrlWrapper(getAllMerch));
 router.patch('/merch/:id', upload.single('image'), validateBody(updateMerchSchema), ctrlWrapper(updateMerch));
 router.delete('/merch/:id', ctrlWrapper(deleteMerch));
+
+// Маршрути для замовлень
+router.get('/orders', ctrlWrapper(getAllOrders));
+router.patch('/orders/:id', ctrlWrapper(updateOrder));
+router.delete('/orders/:id', ctrlWrapper(deleteOrder));
 
 export default router;

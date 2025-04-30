@@ -2,6 +2,10 @@ import { CartCollection } from '../db/models/Cart.js';
 import { PaintingCollection } from '../db/models/Painting.js';
 import { MerchCollection } from '../db/models/merch.js';
 import { OrderCollection } from '../db/models/Order.js';
+import { PaymentCollection } from '../db/models/Payment.js';
+import mongoose from 'mongoose';
+
+const walletAddress = process.env.TRON_WALLET_ADDRESS || "your_tron_wallet_address"; // Заглушка для адреси
 
 export const addToCart = async (req, res) => {
   try {
@@ -176,6 +180,15 @@ export const checkout = async (req, res) => {
     let merch = [];
     let userId = null;
 
+    // Перевіряємо, чи є shippingDetails у тілі запиту
+    const { shippingDetails } = req.body;
+    if (!shippingDetails || !shippingDetails.fullName || !shippingDetails.phoneNumber || !shippingDetails.novaPoshtaBranch) {
+      return res.status(400).json({ message: 'Shipping details are required' });
+    }
+
+    // Встановлюємо paymentDescription за замовчуванням, якщо воно не передане
+    const paymentDescription = req.body.paymentDescription || "Pending payment";
+
     // Якщо користувач авторизований, використовуємо кошик із бази даних
     if (req.user) {
       userId = req.user._id;
@@ -208,30 +221,53 @@ export const checkout = async (req, res) => {
       }
     } else {
       // Для неавторизованих користувачів отримуємо кошик із тіла запиту
-      const { cartItems, shippingDetails } = req.body;
+      const { cartItems } = req.body;
 
       if (!cartItems || cartItems.length === 0) {
         return res.status(400).json({ message: 'Cart is empty' });
       }
 
-      // Перевіряємо доступність товарів
-      paintings = await Promise.all(
-        cartItems
-          .filter((item) => item.type === 'painting')
-          .map(async (item) => {
-            const painting = await PaintingCollection.findById(item.id);
-            return { paintingId: painting };
-          })
-      );
+      // Перевіряємо, чи всі елементи кошика мають коректний id
+      const invalidItems = cartItems.filter((item) => !item.id || !mongoose.Types.ObjectId.isValid(item.id));
+      if (invalidItems.length > 0) {
+        return res.status(400).json({
+          message: `Invalid item ids: ${invalidItems.map((item) => item.id || 'undefined').join(', ')}`,
+        });
+      }
 
-      merch = await Promise.all(
-        cartItems
-          .filter((item) => item.type === 'merch')
-          .map(async (item) => {
-            const merchItem = await MerchCollection.findById(item.id);
-            return { merchId: merchItem };
-          })
-      );
+      // Обробляємо картини
+      const paintingItems = cartItems.filter((item) => item.type === 'painting');
+      paintings = [];
+      for (const item of paintingItems) {
+        try {
+          console.log(`Fetching painting with id: ${item.id}`);
+          const painting = await PaintingCollection.findById(item.id);
+          if (!painting) {
+            return res.status(404).json({ message: `Painting with id ${item.id} not found` });
+          }
+          paintings.push({ paintingId: painting });
+        } catch (error) {
+          console.error(`Error fetching painting ${item.id}:`, error.message);
+          return res.status(400).json({ message: `Error fetching painting ${item.id}: ${error.message}` });
+        }
+      }
+
+      // Обробляємо мерч-товари
+      const merchItems = cartItems.filter((item) => item.type === 'merch');
+      merch = [];
+      for (const item of merchItems) {
+        try {
+          console.log(`Fetching merch with id: ${item.id}`);
+          const merchItem = await MerchCollection.findById(item.id);
+          if (!merchItem) {
+            return res.status(404).json({ message: `Merch item with id ${item.id} not found` });
+          }
+          merch.push({ merchId: merchItem });
+        } catch (error) {
+          console.error(`Error fetching merch ${item.id}:`, error.message);
+          return res.status(400).json({ message: `Error fetching merch ${item.id}: ${error.message}` });
+        }
+      }
 
       const unavailablePaintings = paintings.filter(
         (item) => !item.paintingId.available,
@@ -249,9 +285,6 @@ export const checkout = async (req, res) => {
           ],
         });
       }
-
-      // Зберігаємо дані доставки у замовлення для неавторизованих користувачів
-      req.shippingDetails = shippingDetails;
     }
 
     const totalPrice = paintings.reduce(
@@ -260,7 +293,7 @@ export const checkout = async (req, res) => {
     );
 
     const order = await OrderCollection.create({
-      userId: userId || null, // Для неавторизованих користувачів userId буде null
+      userId: userId || null,
       paintings: paintings.map((item) => ({
         paintingId: item.paintingId._id,
       })),
@@ -269,8 +302,24 @@ export const checkout = async (req, res) => {
       })),
       totalPrice,
       status: 'pending',
-      shippingDetails: req.shippingDetails || req.body.shippingDetails, // Додаємо дані доставки
+      shippingDetails: req.body.shippingDetails,
+      paymentDescription,
     });
+
+    // Створюємо платіж (заглушка)
+    const payment = await PaymentCollection.create({
+      orderId: order._id,
+      paymentProvider: 'direct',
+      paymentStatus: 'pending',
+      paymentUrl: walletAddress,
+      amount: totalPrice,
+      currency: 'USDT',
+      transactionId: order._id.toString(),
+    });
+
+    // Оновлюємо замовлення з paymentId
+    order.paymentId = payment._id;
+    await order.save();
 
     await Promise.all([
       ...paintings.map((item) =>
@@ -297,11 +346,57 @@ export const checkout = async (req, res) => {
 
     return res.status(201).json({
       message: 'Order created successfully',
-      data: order,
+      data: {
+        order,
+        paymentAddress: walletAddress,
+        amount: totalPrice,
+        currency: 'USDT',
+        paymentId: order._id.toString(),
+      },
     });
   } catch (error) {
+    if (error.message.includes('not found')) {
+      return res.status(404).json({ message: error.message });
+    }
     return res
       .status(500)
       .json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Симуляція оплати
+export const simulatePayment = async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+
+    const payment = await PaymentCollection.findOne({ transactionId: paymentId });
+    if (!payment) {
+      return res.status(404).json({ message: 'Payment not found' });
+    }
+
+    const order = await OrderCollection.findById(payment.orderId);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Симулюємо успішну оплату
+    payment.paymentStatus = 'completed';
+    payment.transactionId = `SIMULATED_${paymentId}`;
+    await payment.save();
+
+    order.status = 'paid';
+    await order.save();
+
+    return res.status(200).json({
+      message: 'Payment simulated successfully',
+      data: {
+        orderId: order._id,
+        status: order.status,
+        paymentStatus: payment.paymentStatus,
+        message: 'Payment completed. Preparing for shipment.',
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
