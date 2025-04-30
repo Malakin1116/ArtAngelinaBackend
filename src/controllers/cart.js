@@ -1,6 +1,6 @@
 import { CartCollection } from '../db/models/Cart.js';
 import { PaintingCollection } from '../db/models/Painting.js';
-import { MerchCollection } from '../db/models/merch.js'; // Додаємо модель Merch
+import { MerchCollection } from '../db/models/merch.js';
 import { OrderCollection } from '../db/models/Order.js';
 
 export const addToCart = async (req, res) => {
@@ -172,66 +172,128 @@ export const removeFromCart = async (req, res) => {
 
 export const checkout = async (req, res) => {
   try {
-    const userId = req.user._id;
+    let paintings = [];
+    let merch = [];
+    let userId = null;
 
-    const cart = await CartCollection.findOne({ userId })
-      .populate('paintings.paintingId')
-      .populate('merch.merchId');
+    // Якщо користувач авторизований, використовуємо кошик із бази даних
+    if (req.user) {
+      userId = req.user._id;
+      const cart = await CartCollection.findOne({ userId })
+        .populate('paintings.paintingId')
+        .populate('merch.merchId');
 
-    if (!cart || (cart.paintings.length === 0 && cart.merch.length === 0)) {
-      return res.status(400).json({ message: 'Cart is empty' });
+      if (!cart || (cart.paintings.length === 0 && cart.merch.length === 0)) {
+        return res.status(400).json({ message: 'Cart is empty' });
+      }
+
+      paintings = cart.paintings;
+      merch = cart.merch;
+
+      const unavailablePaintings = paintings.filter(
+        (item) => !item.paintingId.available,
+      );
+      const unavailableMerch = merch.filter(
+        (item) => !item.merchId.available,
+      );
+
+      if (unavailablePaintings.length > 0 || unavailableMerch.length > 0) {
+        return res.status(400).json({
+          message: 'Some items are no longer available',
+          unavailable: [
+            ...unavailablePaintings.map((item) => item.paintingId.title),
+            ...unavailableMerch.map((item) => item.merchId.title),
+          ],
+        });
+      }
+    } else {
+      // Для неавторизованих користувачів отримуємо кошик із тіла запиту
+      const { cartItems, shippingDetails } = req.body;
+
+      if (!cartItems || cartItems.length === 0) {
+        return res.status(400).json({ message: 'Cart is empty' });
+      }
+
+      // Перевіряємо доступність товарів
+      paintings = await Promise.all(
+        cartItems
+          .filter((item) => item.type === 'painting')
+          .map(async (item) => {
+            const painting = await PaintingCollection.findById(item.id);
+            return { paintingId: painting };
+          })
+      );
+
+      merch = await Promise.all(
+        cartItems
+          .filter((item) => item.type === 'merch')
+          .map(async (item) => {
+            const merchItem = await MerchCollection.findById(item.id);
+            return { merchId: merchItem };
+          })
+      );
+
+      const unavailablePaintings = paintings.filter(
+        (item) => !item.paintingId.available,
+      );
+      const unavailableMerch = merch.filter(
+        (item) => !item.merchId.available,
+      );
+
+      if (unavailablePaintings.length > 0 || unavailableMerch.length > 0) {
+        return res.status(400).json({
+          message: 'Some items are no longer available',
+          unavailable: [
+            ...unavailablePaintings.map((item) => item.paintingId.title),
+            ...unavailableMerch.map((item) => item.merchId.title),
+          ],
+        });
+      }
+
+      // Зберігаємо дані доставки у замовлення для неавторизованих користувачів
+      req.shippingDetails = shippingDetails;
     }
 
-    const unavailablePaintings = cart.paintings.filter(
-      (item) => !item.paintingId.available,
-    );
-    const unavailableMerch = cart.merch.filter(
-      (item) => !item.merchId.available,
-    );
-
-    if (unavailablePaintings.length > 0 || unavailableMerch.length > 0) {
-      return res.status(400).json({
-        message: 'Some items are no longer available',
-        unavailable: [
-          ...unavailablePaintings.map((item) => item.paintingId.title),
-          ...unavailableMerch.map((item) => item.merchId.title),
-        ],
-      });
-    }
-
-    const totalPrice = cart.paintings.reduce(
+    const totalPrice = paintings.reduce(
       (sum, item) => sum + item.paintingId.price,
-      cart.merch.reduce((sum, item) => sum + item.merchId.price, 0)
+      merch.reduce((sum, item) => sum + item.merchId.price, 0)
     );
 
     const order = await OrderCollection.create({
-      userId,
-      paintings: cart.paintings.map((item) => ({
+      userId: userId || null, // Для неавторизованих користувачів userId буде null
+      paintings: paintings.map((item) => ({
         paintingId: item.paintingId._id,
       })),
-      merch: cart.merch.map((item) => ({
+      merch: merch.map((item) => ({
         merchId: item.merchId._id,
       })),
       totalPrice,
       status: 'pending',
+      shippingDetails: req.shippingDetails || req.body.shippingDetails, // Додаємо дані доставки
     });
 
     await Promise.all([
-      ...cart.paintings.map((item) =>
+      ...paintings.map((item) =>
         PaintingCollection.findByIdAndUpdate(item.paintingId._id, {
           available: false,
         })
       ),
-      ...cart.merch.map((item) =>
+      ...merch.map((item) =>
         MerchCollection.findByIdAndUpdate(item.merchId._id, {
           available: false,
         })
       ),
     ]);
 
-    cart.paintings = [];
-    cart.merch = [];
-    await cart.save();
+    // Очищаємо кошик для авторизованих користувачів
+    if (req.user) {
+      const cart = await CartCollection.findOne({ userId });
+      if (cart) {
+        cart.paintings = [];
+        cart.merch = [];
+        await cart.save();
+      }
+    }
 
     return res.status(201).json({
       message: 'Order created successfully',

@@ -2,12 +2,21 @@ import { Schema, model } from 'mongoose';
 
 const orderSchema = new Schema(
   {
-    userId: { type: Schema.Types.ObjectId, ref: 'user', required: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'user', required: false }, // Змінюємо на необов’язкове
     paintings: [
       {
         paintingId: {
           type: Schema.Types.ObjectId,
           ref: 'painting',
+          required: true,
+        },
+      },
+    ],
+    merch: [
+      {
+        merchId: {
+          type: Schema.Types.ObjectId,
+          ref: 'merch',
           required: true,
         },
       },
@@ -26,7 +35,12 @@ const orderSchema = new Schema(
       default: 'pending',
     },
     paymentId: { type: Schema.Types.ObjectId, ref: 'Payment', default: null },
-    paymentDescription: { type: String, required: true }, // ✅ Додане поле
+    paymentDescription: { type: String, required: false }, // Змінюємо на необов’язкове
+    shippingDetails: {
+      fullName: { type: String, required: true },
+      phoneNumber: { type: String, required: true },
+      novaPoshtaBranch: { type: String, required: true },
+    },
   },
   { timestamps: true, versionKey: false },
 );
